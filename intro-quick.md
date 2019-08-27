@@ -93,13 +93,100 @@ Gerrit 默认的工作流程要求变更在被接受前进行两次验证。代�
 
 在 Gerrit 中很重要的一点是，代码审查和验证是两个不同的权限，这让两个任务得以分开。比如说，一个自动化程序可以验证但不能审查代码。
 
-既然我们是代码审查者，我们接下来就要审查代码。我们可以在 Gerrit 网页中使用联合或左右两页视图的比较工具来查看代码。在下面的例子中我们用了左右两页的视图。在任何一种视图中，你都可以通过双击代码行（或单击行号）来添加行内评论。你也可以通过在表头的任何地方（除了“Patch Sets“）双击或在行号列头部的图标上单击来添加文件评论。一旦发布，这些评论就对全员可见，允许对变更进行讨论。
+既然我们是代码审查者，我们接下来就要审查代码。我们可以在 Gerrit 网页中使用联合视图或左右两页视图的比较工具来查看代码。在下面的例子中我们用了左右两页的视图。在任何一种视图中，你都可以通过双击代码行（或单击行号）来添加行内评论。你也可以通过在表头的任何地方（除了“Patch Sets“）双击或在行号列头的图标上单击来添加文件评论。一旦发布，这些评论就对全员可见，允许对变更进行讨论。
 
 ![左右两页的补丁视图](./images/intro-quick-review-line-comment.jpg)
 
-代码审查者最终花费大量时间浏览这些页面，查看并评论这些更改。为了让这项工作尽量高效，Gerrit 为绝大多数操作都提供了键盘快捷键（有些操作甚至只能通过热键进行）。任何时候你都可以敲下 `?` 键来查看键盘快捷键。
+代码审查者最终花费大量时间浏览这些页面，查看并评论这些更改。为了让这项工作尽量高效，Gerrit 为绝大多数操作都提供了键盘快捷键（有些操作甚至只能通过热键触发）。任何时候你都可以敲下 `?` 键来查看键盘快捷键。
 
 ![图5 键盘快捷键帮助](./images/intro-quick-hot-key-help.jpg)
 
-在看完变更后，我们需要完成审查提交。在我们开始的变更页面
+在看完变更后，我们需要完成审查提交。在我们开始的变更页面单击 *Review* 按钮，然后就可以输入 Code Review 标签和概述信息了。
 
+![图6 审查变更](./images/intro-quick-reviewing-the-change.jpg)
+
+审查者选择的标签会决定下一步会发生什么。+1 和 -1 级别只是一个观点，而 +2 和 -2 级别可以允许或禁止一个变更。要让一个变更被接受，必须至少有一个 +2，而且没有 -2 的投票。虽然这些值都是数字，但是不能累加。两个 +1 不等同于一个 +2。
+
+无论选择了哪个标签，一旦点击了 *Publish Comments* 按钮，概述信息和所有评论都将对所有人可见。
+
+在上面的例子中，变更没被接受，所以创建者需要返工。让我们切回创建者的角色。
+
+### 重新修改变更
+
+只要在我们上传变更前配置了 Change-Id commit-msg hook，重新修改是件很简单的事情。上传一个重新修改过的变更所需做的所有事情就是再推送一个 commit 信息中有着相同 Change-Id 的另一个 commit。因为 hook 在我们初始 commit 中添加了一个 Change-Id，我们只需要 checkout 然后 amend 这个 commit。然后就和创建审查一样推送到 Gerrit 中：
+
+```console
+$ <checkout first commit>
+$ <rework>
+$ git commit --amend
+$ git push origin HEAD:refs/for/master
+Counting objects: 5, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (3/3), 546 bytes, done.
+Total 3 (delta 0), reused 0 (delta 0)
+remote: Processing changes: updated: 1, done
+remote:
+remote: Updated Changes:
+remote:   http://gerrithost:8080/68
+remote:
+To ssh://gerrithost:29418/RecipeBook.git
+ * [new branch]      HEAD -> refs/for/master
+```
+
+注意这一回输出略有不同。因为我们正在添加到一个已有的审查，Gerrit 告诉我们变更升级了（updated）。
+
+上传重新修改的 commit 后，我们可以回到 Gerrit 网页来看下我们的变更。
+
+![图7 对重新修改做审查](./images/intro-quick-review-2-patches.jpg)
+
+仔细看的话你会注意到有两个与此变更相关联的补丁（Patch）：初次提交的和再次提交的。为了不再重复上面的操作，我们假定这次可以让代码审核者给 +2 的评分。
+
+### 测试变更
+
+Gerrit 默认的工作流程中有两个审核的步骤，代码审查和验证。验证的意思是测验变更真的可以工作。这一般指的是验证代码编译，单元测试等。实际上，一个项目可以决定他们想要在这里做多少工作。同样值得注意的是，这只是 Gerrit 默认的工作流程，验证测试其实可以去掉，也可以添加其他步骤。
+
+正如在代码审查一节所述，验证一般通过像 Gerrit Trigger Jenkins Plugin 这样的插件来实现自动化。但也有些时候代码需要人工验证，或审查者需要验证一些功能是否可用或如何运行。有时候在开发环境而不是网页上工作也挺好的。所有这些需求都涉及让人在他们开发环境获取变更。Gerrit 通过将每一个变更作为一个 git 分支来让这个过程变得简单。审查者所需做的就是从 Gerrit 服务器 fetch 并 checkout 这个分支，从而得到变更。
+
+我们甚至不需要这么努力地去想这个问题，如果你仔细看 Gerrit Code Review 的截图，你会发现一个 *download* 命令。我们所需做的就是复制粘贴这个命令，然后运行。
+
+```console
+$ git fetch http://gerrithost:8080/p/RecipeBook refs/changes/68/68/2
+From http://gerrithost:8080/p/RecipeBook
+ * branch            refs/changes/68/68/2 -> FETCH_HEAD
+$ git checkout FETCH_HEAD
+Note: checking out 'FETCH_HEAD'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by performing another checkout.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -b with the checkout command again. Example:
+
+  git checkout -b new_branch_name
+
+HEAD is now at d5dacdb... Change to a proper, yeast based pizza dough.
+```
+
+​	
+
+就是那么简单，我们现在已经可以在我们的工作拷贝中和这个变更玩耍了。你可能会对引用路径的数字感兴趣。
+
+- 第一个 **68** 是变更 ID 除以 100 的余数。这个数字的唯一作用是降低 git 仓库中任一目录的文件数量。
+- 第二个 **68** 是完整的变更 ID。你可以在 Gerrit 审查页面的 URL 中注意到这个值。
+- **2** 是变更的补丁集编号。在这个例子中我们上传了一些修复，所以我们想要的是第二个补丁集，而不是第一个被拒绝的补丁集。
+
+### 手动验证变更
+
+为简化操作，我们来手动验证变更。验证人员可以是代码审查人员，或者是其他任何人。这实际上取决于项目的规模和有效性。如果你有 Verify 权限，那么当你在 Gerrit 网页上点击 *Review* 按钮的时候你可以看到 verify 分数。
+
+![图8 验证变更](./images/intro-quick-verifying.jpg)
+
+不像代码审查那样，验证没有 +2 和 -2 级别，因为验证要么是成功要么是失败，所以我们只需要提交 +1（或 -1）。
+
+### 提交变更
+
+你可能已经注意到在验证的截图中有两个提交的按钮 *Publish Comments* 和 *Publish and Submit*。*Publish and Submit* 按钮总是可见，但只会在变更符合提交的标准时才有效（比如经过了验证和审查）。所以通过点击一个按钮来提交审查分和提交变更是很方便的。如果你选择 *Publish Comments* 那么分数会被保存，但是变更不会被接受进入代码库。这时候在主页面会有一个 *Submit Patch Set X* 的按钮。正如代码审查和验证是可以被不同用户做的不同操作，提交是第三种可以被限制到另一组用户的操作。
+
+点击 *Publish and Submit* 或 *Submit Patch Set X* 按钮将合并变更到仓库的主要部分，这样变更将被接受成为项目的一部分。这之后任何人拉取 Git 仓库都会得到这个成为 master 分支一部分的变更。
