@@ -1,11 +1,13 @@
 # Gerrit 简体中文文档
 
+> 版本：V2.13
+
 ## 教程
 
 1. 开始
-   1. 快速介绍 Gerrit
-   2. 用户指南
-   3. 项目所有者指南
+   1. [快速介绍 Gerrit](./intro-quick.md)
+   2. [用户指南](./intro-user.md)
+   3. [项目所有者指南](./intro-project-owner.md)
    4. 安卓的默认工作流（外链）
 
 2. 网页
